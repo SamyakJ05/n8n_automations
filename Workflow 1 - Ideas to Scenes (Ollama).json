@@ -1,0 +1,671 @@
+{
+  "name": "Workflow 1 - Ideas to Scenes (Ollama)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c355467f-d36a-48bc-af50-52ce5271169d",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        976,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "topic",
+              "value": "ASMR Satisfying Videos"
+            },
+            {
+              "name": "model",
+              "value": "gpt-oss:120b"
+            }
+          ],
+          "number": [
+            {
+              "name": "idea_count",
+              "value": 5
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "06485e31-a8bf-441d-a5ed-eb541673c7c5",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Handle all possible LLM outputs\nlet raw =\n  data.text ||\n  data.output ||\n  data.response ||\n  data.content;\n\nif (!raw) {\n  throw new Error(\"No text output from LLM Chain\");\n}\n\n// 🔥 CRITICAL FIX:\n// Extract the FIRST JSON array from the text\nconst match = raw.match(/\\[[\\s\\S]*\\]/);\n\nif (!match) {\n  throw new Error(\"No JSON array found in output: \" + raw);\n}\n\nlet ideas;\ntry {\n  ideas = JSON.parse(match[0]);\n} catch (e) {\n  throw new Error(\"Failed to parse JSON: \" + match[0]);\n}\n\nconst now = new Date().toISOString();\n\nreturn ideas.map(i => ({\n  json: {\n    idea_id: i.idea_id,\n    title: i.title,\n    visual_theme: i.visual_theme,\n    status: \"NEW\",\n    retries: 0,\n    created_at: now,\n    updated_at: now\n  }\n}));"
+      },
+      "id": "e6c8b9f1-7de5-427f-903e-74c9b1bfda0c",
+      "name": "Parse Ideas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "idea_id",
+              "displayName": "idea_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visual_theme",
+              "displayName": "visual_theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retries",
+              "displayName": "retries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2197a3ee-7a6d-4d4a-a091-72d2a4982f9d",
+      "name": "Save Ideas to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1776,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XN1vp2coGTv0Euru",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "303780ba-a75d-4bc4-b1b2-a7b529633e28",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Handle all possible LLM Chain output fields\nconst raw =\n  data.text ||\n  data.output ||\n  data.response ||\n  data.message?.content;\n\nif (!raw) {\n  throw new Error(\"No scenes output from LLM\");\n}\n\n// 🔥 CRITICAL STEP 1: extract JSON OBJECT\n// This safely ignores any extra text before/after\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\n\nif (!match) {\n  throw new Error(\"No JSON object found in LLM output: \" + raw);\n}\n\n// 🔥 STEP 2: parse extracted JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(match[0]);\n} catch (e) {\n  throw new Error(\"Invalid JSON after extraction: \" + match[0]);\n}\n\n// 🔥 STEP 3: validate structure\nif (\n  !parsed.scenes ||\n  !Array.isArray(parsed.scenes) ||\n  parsed.scenes.length !== 3\n) {\n  throw new Error(\n    \"Scenes must be an array of exactly 3 items. Got: \" +\n    JSON.stringify(parsed)\n  );\n}\n\nfor (const scene of parsed.scenes) {\n  if (\n    typeof scene.scene_id !== \"string\" ||\n    typeof scene.visual_prompt !== \"string\"\n  ) {\n    throw new Error(\"Invalid scene structure: \" + JSON.stringify(scene));\n  }\n}\n\n// Attach metadata\nconst idea = $node[\"Split In Batches\"].json;\nconst now = new Date().toISOString();\n\nreturn parsed.scenes.map(scene => ({\n  json: {\n    idea_id: idea.idea_id,\n    scene_id: scene.scene_id,\n    visual_prompt: scene.visual_prompt,\n    status: \"NEW\",\n    retries: 0,\n    created_at: now,\n    updated_at: now\n  }\n}));"
+      },
+      "id": "6369004b-79d9-48d4-bde2-4c7f6037bb8a",
+      "name": "Parse Scenes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs",
+          "mode": "list",
+          "cachedResultName": "Video Ideas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 241983757,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs/edit#gid=241983757"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "idea_id",
+              "displayName": "idea_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "scene_id",
+              "displayName": "scene_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visual_prompt",
+              "displayName": "visual_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retries",
+              "displayName": "retries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9367fb20-9d2a-4c40-bfb4-52f2b8e9c4de",
+      "name": "Save Scenes to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2576,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XN1vp2coGTv0Euru",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs",
+          "mode": "list",
+          "cachedResultName": "Video Ideas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1992378611,
+          "mode": "list",
+          "cachedResultName": "Sheet3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hMm7idPz4e3n-0nNGTxgNHfJHLttOXCzPfbtYiRxVSs/edit#gid=1992378611"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "idea_id",
+              "displayName": "idea_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "scene_id",
+              "displayName": "scene_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visual_prompt",
+              "displayName": "visual_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retries",
+              "displayName": "retries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "1d920187-3b23-4949-9835-20fb32540444",
+      "name": "Log Idea Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2784,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XN1vp2coGTv0Euru",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You must output ONLY raw JSON.\n\nDo NOT explain.\nDo NOT repeat instructions.\nDo NOT include comments.\nDo NOT include line numbers.\nDo NOT include any text before or after the JSON.\n\nTASK:\nGenerate 5 ASMR satisfying video ideas.\n\nRULES:\n- Hook within 1 second\n- Perfectly loopable\n- No humans, faces, text, or dialogue\n- Brand-safe visuals only\n\nID RULES:\n- idea_id must be sequential\n- Start at asmr_001\n- End at asmr_005\n\nOUTPUT FORMAT (STRICT):\n[\n  {\n    \"idea_id\": \"asmr_001\",\n    \"title\": \"short catchy title\",\n    \"visual_theme\": \"materials, colors, textures\"\n  }\n]",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1312,
+        208
+      ],
+      "id": "fdb69f7a-424c-47fb-815c-070fbae91d02",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "gpt-oss:120b",
+        "options": {
+          "temperature": 0.4,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        368
+      ],
+      "id": "1bd26daf-1b31-4f71-8d31-32e8499ae48b",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "QxshQBMJS0vSRwpW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-oss:120b",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        352
+      ],
+      "id": "cb51e3ad-397e-40ae-a294-8f0fce52cc3b",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "QxshQBMJS0vSRwpW",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=ROLE:\nVIRAL ASMR Content Creator\n\nTASK:\nGenerate scenes for an ASMR satisfying YouTube Short.\n\nINPUT IDEA:\nTitle: {{$json.title}}\nVisual Theme: {{$json.visual_theme}}\n\n\nSCENE RULES (STRICT):\n- Exactly 3 scenes\n- Each scene represents ~10 seconds (do NOT mention duration)\n- Begin mid-motion\n- End mid-motion\n- Perfectly loopable visuals\n- No humans, faces, hands, or text\n- Clean studio lighting\n- Brand-safe, calming, hypnotic visuals\n\nVISUAL THEME (USE CONSISTENTLY):\n- Polished marble surface\n- Teal mineral veins flowing through marble\n- Soft backlighting\n- Subtle water ripple effects\n- Smooth, slow, rhythmic motion\n- High-detail, cinematic macro look\n\nOUTPUT FORMAT (STRICT JSON):\n{\n  \"scenes\": [\n    {\n      \"scene_id\": \"scene_1\",\n      \"visual_prompt\": \"\"\n    },\n    {\n      \"scene_id\": \"scene_2\",\n      \"visual_prompt\": \"\"\n    },\n    {\n      \"scene_id\": \"scene_3\",\n      \"visual_prompt\": \"\"\n    }\n  ]\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2128,
+        208
+      ],
+      "id": "2f664d10-0441-4f76-9b8e-dffa65e57a16",
+      "name": "Basic LLM Chain1"
+    }
+  ],
+  "pinData": {
+    "Save Scenes to Sheets": [
+      {
+        "json": {
+          "idea_id": "asmr_001",
+          "scene_id": "scene_1",
+          "visual_prompt": "Macro close‑up of polished white marble with delicate teal veins, soft backlighting glows along the veins. A gentle water‑ripple travels diagonally across the surface, the crest and trough captured mid‑motion so the motion can loop seamlessly. High‑detail, cinematic focus, no humans or text.",
+          "status": "NEW",
+          "retries": 0,
+          "created_at": "2026-01-11T13:37:18.583Z",
+          "updated_at": "2026-01-11T13:37:18.583Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "idea_id": "asmr_001",
+          "scene_id": "scene_2",
+          "visual_prompt": "Slightly wider top‑down view of the same marble slab, teal veins illuminated by a subtle backlight. A slow, concentric ripple expands outward from an off‑center point, captured mid‑expansion and mid‑contraction to allow perfect looping. Smooth, rhythmic motion, macro detail, brand‑safe.",
+          "status": "NEW",
+          "retries": 0,
+          "created_at": "2026-01-11T13:37:18.583Z",
+          "updated_at": "2026-01-11T13:37:18.583Z"
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "idea_id": "asmr_001",
+          "scene_id": "scene_3",
+          "visual_prompt": "Top‑down perspective of the marble surface, teal veins highlighted by a soft halo of backlight. A slow, horizontal water‑like ripple glides across the stone, shown mid‑flow at both start and end for seamless looping. Clean studio lighting, high‑resolution macro look, no humans or text.",
+          "status": "NEW",
+          "retries": 0,
+          "created_at": "2026-01-11T13:37:18.583Z",
+          "updated_at": "2026-01-11T13:37:18.583Z"
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ideas": {
+      "main": [
+        [
+          {
+            "node": "Save Ideas to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Ideas to Sheets": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Scenes": {
+      "main": [
+        [
+          {
+            "node": "Save Scenes to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Scenes to Sheets": {
+      "main": [
+        [
+          {
+            "node": "Log Idea Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Parse Scenes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a657b632-5694-4a0c-9376-80eee7f51b95",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "787a12fa286a837e60b0ec697f8a98a99668cb385a7d242af2ed3b2a10442010"
+  },
+  "id": "uh-1nI_UD3W5BGZpHHNcW",
+  "tags": []
+}
